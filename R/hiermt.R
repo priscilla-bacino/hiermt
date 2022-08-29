@@ -1,12 +1,16 @@
-#' Title: Hierarchical multiple testing
+#' Hierarchical multiple testing
 #'
-#' Description: Calculate and visualize correlation-based hierarchically adjusted p-values.
+#' Calculate and visualize correlation-based hierarchically adjusted p-values.
 #'
 #' @param pvalues A numeric vector of p-values of length Q.
 #' @param test_stats  A numeric vector of test statistics of length Q.
 #' @param cor_mat A Q*Q square matrix of the correlations between the p-values or test statistics.
 #' @param global_test Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".
 #' @param alpha Probability of Type I error. Default is set to 1.
+#'
+#' @returns `dend` A dendrogram with the hierarchically-adjusted p-values.
+#' @returns `leaves` A dataframe containing the adjusted p-values for the individual hypotheses.
+#' @returns `all` A dataframe containing all attributes of each node in the hierarchy.
 #' @export
 #'
 #' @import stats
@@ -107,7 +111,7 @@ hiermt <- function(pvalues, test_stats, cor_mat, global_test = "ghc", alpha=1){
     coord_flip()+
     theme(legend.position="none")
   leaves <- data.frame(index = attr_leaf$nodes, h_adj_pvalue = attr_leaf$hadj_pvalue)
-  return(list(dend=ggdend_plot,leaves = leaves, all_nodes = attr))
+  return(list(dend = ggdend_plot, leaves = leaves, all = attr))
 }
 
 
