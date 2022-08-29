@@ -2,7 +2,7 @@
 % Please edit documentation in R/hiermt.R
 \name{hiermt}
 \alias{hiermt}
-\title{Title: Hierarchical multiple testing}
+\title{Hierarchical multiple testing}
 \usage{
 hiermt(pvalues, test_stats, cor_mat, global_test = "ghc", alpha = 1)
 }
@@ -17,8 +17,15 @@ hiermt(pvalues, test_stats, cor_mat, global_test = "ghc", alpha = 1)
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
 }
+\value{
+\code{dend} A dendrogram with the hierarchically-adjusted p-values.
+
+\code{leaves} A dataframe containing the adjusted p-values for the individual hypotheses.
+
+\code{all} A dataframe containing all attributes of each node in the hierarchy.
+}
 \description{
-Description: Calculate and visualize correlation-based hierarchically adjusted p-values.
+Calculate and visualize correlation-based hierarchically adjusted p-values.
 }
 \examples{
 set.seed(1)
