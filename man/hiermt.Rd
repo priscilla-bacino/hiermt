@@ -4,24 +4,30 @@
 \alias{hiermt}
 \title{Title: Hierarchical multiple testing}
 \usage{
-hiermt(formula, data, global_test, alpha)
+hiermt(pvalues, test_stats, cor_mat, global_test, alpha = 1, method)
 }
 \arguments{
-\item{formula}{A formula specifying the model.}
+\item{pvalues}{A numeric vector of p-values of length Q.}
 
-\item{data}{A data frame in containing the variables named in \code{formula}.}
+\item{test_stats}{A numeric vector of test statistics of length Q.}
 
-\item{global_test}{Global test to use when testing the intersection of hypotheses.}
+\item{cor_mat}{A Q*Q square matrix of the correlations between the p-values or test statistics.}
 
-\item{alpha}{Probability of Type I error.}
+\item{global_test}{Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
+
+\item{alpha}{Probability of Type I error. Default is set to 1.}
+
+\item{method}{Multiple testing adjustment method, a character string. "Meinshausen's method", "Inheritance procedure"}
 }
 \description{
-Description: Calculate and visualize hierarchically bonferroni-adjusted
-p-values.
+Description: Calculate and visualize correlation-based hierarchically adjusted p-values.
 }
 \examples{
 set.seed(1)
-library(MASS)
-df <- data.frame(mvrnorm(n=80,mu=rep(0,100),Sigma=diag(100)), label = rep(c(0,1),40))
-hiermt(formula=.~label, data = df, global_test="bonferroni", alpha = 0.05)
+Q <- 50
+test_stats <- rnorm(50, mean = c(rep(0, 25), rep(3, 25)))
+pvalues <- 2*pnorm(sort(-abs(test_stats)))
+cor_mat <- matrix(data= 0.3, nrow=Q, ncol=Q)
+diag(cor_mat) <- 1
+hiermt(pvalues, test_stats, cor_mat, global_test="bonferroni", alpha = 0.05, method=NULL)
 }

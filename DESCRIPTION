@@ -4,11 +4,9 @@ Title: Hierarchical multiple testing
 Version: 0.1.0
 Author: Priscilla Bacino
 Maintainer: Priscilla Bacino <serwaabacino@gmail.com>
-Description: Calculate and visualize hierarchically 
-    bonferroni-adjusted p-values. Use four spaces when indenting 
-    paragraphs within the Description.
-Imports: MASS, collapse, data.table, dendextend, tidyverse
-License: usethis::use_mit_license() 
+Description: Calculate and visualize correlation-based hierarchically adjusted p-values.
+Imports: stats, data.table, MASS, purrr, dendextend, collapse, magrittr, dplyr, ggplot2, ggdendro
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
