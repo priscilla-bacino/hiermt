@@ -5,7 +5,7 @@ Version: 0.1.0
 Author: Priscilla Bacino
 Maintainer: Priscilla Bacino <serwaabacino@gmail.com>
 Description: Calculate and visualize correlation-based hierarchically adjusted p-values.
-Imports: stats, data.table, MASS, purrr, dendextend, collapse, magrittr, dplyr, ggplot2, ggdendro
+Imports: stats, data.table, MASS, purrr, dendextend, collapse, magrittr, dplyr, ggplot2, ggdendro, GBJ, clusterGeneration
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

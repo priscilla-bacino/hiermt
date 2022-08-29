@@ -4,7 +4,7 @@
 \alias{hiermt}
 \title{Title: Hierarchical multiple testing}
 \usage{
-hiermt(pvalues, test_stats, cor_mat, global_test, alpha = 1, method)
+hiermt(pvalues, test_stats, cor_mat, global_test = "ghc", alpha = 1)
 }
 \arguments{
 \item{pvalues}{A numeric vector of p-values of length Q.}
@@ -16,8 +16,6 @@ hiermt(pvalues, test_stats, cor_mat, global_test, alpha = 1, method)
 \item{global_test}{Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
-
-\item{method}{Multiple testing adjustment method, a character string. "Meinshausen's method", "Inheritance procedure"}
 }
 \description{
 Description: Calculate and visualize correlation-based hierarchically adjusted p-values.
@@ -25,9 +23,8 @@ Description: Calculate and visualize correlation-based hierarchically adjusted p
 \examples{
 set.seed(1)
 Q <- 50
-test_stats <- rnorm(50, mean = c(rep(0, 25), rep(3, 25)))
+test_stats <- rnorm(Q, mean = c(rep(0, Q/2), rep(3, Q/2)))
 pvalues <- 2*pnorm(sort(-abs(test_stats)))
-cor_mat <- matrix(data= 0.3, nrow=Q, ncol=Q)
-diag(cor_mat) <- 1
-hiermt(pvalues, test_stats, cor_mat, global_test="bonferroni", alpha = 0.05, method=NULL)
+cor_mat <- clusterGeneration::rcorrmatrix(Q)
+hiermt(pvalues, test_stats, cor_mat, global_test="bonferroni", alpha = 0.05)
 }
