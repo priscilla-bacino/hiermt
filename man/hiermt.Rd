@@ -4,14 +4,12 @@
 \alias{hiermt}
 \title{Hierarchical multiple testing}
 \usage{
-hiermt(pvalues, test_stats, cor_mat, global_test = "ghc", alpha = 1)
+hiermt(formula, data = NULL, global_test = "ghc", alpha = 1)
 }
 \arguments{
-\item{pvalues}{A numeric vector of p-values of length Q.}
+\item{formula}{A model formula object. Left hand side contains response variable(s) and right hand side contains explanatory variable(s).}
 
-\item{test_stats}{A numeric vector of test statistics of length Q.}
-
-\item{cor_mat}{A Q*Q square matrix of the correlations between the p-values or test statistics.}
+\item{data}{A data frame containing variables list in the formula.}
 
 \item{global_test}{Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
 
@@ -29,9 +27,7 @@ Calculate and visualize correlation-based hierarchically adjusted p-values.
 }
 \examples{
 set.seed(1)
-Q <- 50
-test_stats <- rnorm(Q, mean = c(rep(0, Q/2), rep(3, Q/2)))
-pvalues <- 2*pnorm(sort(-abs(test_stats)))
-cor_mat <- clusterGeneration::rcorrmatrix(Q)
-hiermt(pvalues, test_stats, cor_mat, global_test="bonferroni", alpha = 0.05)
+n <- 50
+df <- data.frame(y1=rnorm(n), y2=rnorm(n), x=sample(rep(0:1,c(n/2,n/2))))
+hiermt(formula=cbind(y1,y2)~x, data=df, global_test="bonferroni", alpha = 0.05)
 }
