@@ -4,16 +4,24 @@
 \alias{hiermt}
 \title{Hierarchical multiple testing}
 \usage{
-hiermt(formula, data = NULL, global_test = "ghc", alpha = 1)
+hiermt(
+  formula,
+  data = NULL,
+  global_test = "ghc",
+  alpha = 1L,
+  show_plot = FALSE
+)
 }
 \arguments{
 \item{formula}{A model formula object. Left hand side contains response variable(s) and right hand side contains explanatory variable(s).}
 
-\item{data}{A data frame containing variables list in the formula.}
+\item{data}{A data frame containing variables listed in the formula.}
 
 \item{global_test}{Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
+
+\item{show_plot}{logical. Default set to \code{FALSE}, if \code{TRUE} a dendrogram showing the results is returned.}
 }
 \value{
 \code{dend} A dendrogram with the hierarchically-adjusted p-values.
@@ -28,6 +36,7 @@ Calculate and visualize correlation-based hierarchically adjusted p-values.
 \examples{
 set.seed(1)
 n <- 50
-df <- data.frame(y1=rnorm(n), y2=rnorm(n), x=sample(rep(0:1,c(n/2,n/2))))
+df <- data.frame(y1=rnorm(n), y2=rnorm(n),x=sample(rep(0:1,c(n/2,n/2))))
 hiermt(formula=cbind(y1,y2)~x, data=df, global_test="bonferroni", alpha = 0.05)
+hiermt(formula=.~x, data=df, global_test="bonferroni", alpha = 0.05)
 }
