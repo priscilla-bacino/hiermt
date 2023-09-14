@@ -4,12 +4,12 @@
 #'
 #' @param formula A model formula object. Left hand side contains response variable(s) and right hand side contains explanatory variable(s).
 #' @param data  A data frame containing variables listed in the formula.
-#' @param global_test Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".
+#' @param global_test Global test to use when testing the hypotheses. This should be one of "bonferonni", "ghc", "gbj".
 #' @param alpha Probability of Type I error. Default is set to 1.
-#' @param show_plot logical. Default set to `FALSE`, if `TRUE` a dendrogram showing the results is returned.
+#' @param show_plot Logical. Default set to `FALSE`, if `TRUE` a dendrogram showing the results is returned.
 #'
 #' @returns `dend` A dendrogram with the hierarchically-adjusted p-values.
-#' @returns `leaves` A dataframe containing the adjusted p-values for the individual hypotheses.
+#' @returns `leaves` A dataframe containing the adjusted p-values for the terminal node hypotheses.
 #' @returns `all` A dataframe containing all attributes of each node in the hierarchy.
 #' @export
 #'
@@ -20,11 +20,12 @@
 #' @import GBJ
 #' @importFrom clusterGeneration rcorrmatrix
 #' @importFrom magrittr %>%
-#' @importFrom data.table data.table :=
+#' @importFrom data.table data.table := fifelse fcase
 #' @importFrom purrr map map2 map_dbl map2_dbl map_lgl transpose
 #' @importFrom dendextend nnodes partition_leaves which_node which_leaf get_nodes_xy
 #' @importFrom collapse fsubset rapply2d
-#' @importFrom dplyr mutate nth bind_cols
+#' @importFrom dplyr mutate nth bind_cols rename arrange
+#' @importFrom tidyr unnest_wider
 #' @importFrom car Anova
 #' @importFrom emmeans emmeans
 #' @importFrom multcomp cld
@@ -43,20 +44,27 @@ hiermt <- function(formula,
                    alpha = 1L,
                    show_plot = FALSE){
 
+  # Check if global test is one of three: "bonferroni", "ghc", "gbj".
   if (!global_test %in% c("bonferroni", "ghc", "gbj"))stop("Global test
                                           arguement should be one of
                                           \"bonferonni\", \"ghc\",
                                           \"gbj\".")
+  # Assign lhs and rhs of from formula.
   lhs <- formula[[2L]]
   rhs <- formula[[3L]]
+
+  # Check if lhs and rhs are the same.
   if (lhs == rhs)stop(
     "The left-hand side and right-hand side of the formula can not be
     the same."
   )
 
+  # Define terms and termlables for rhs of the formula.
   Terms <- terms(formula, data = data)
   termlabels <- attr(Terms, "term.labels")
 
+  # Check lhs contains >1 response. If lhs = ".", assign all responses except
+  # grouping/treatment variable.
   if (lhs == "."){
     if (missing(data))stop("\'.\' in formula but no 'data'
                         argument is supplied")
@@ -69,9 +77,9 @@ hiermt <- function(formula,
     response_names[[1L]] <- NULL
   }
 
+  # Fit models for each response variable and obtain t-stats and p-values.
   Q <- length(response_names)
   response_names_c <- as.character(response_names)
-
   formulas <- map(response_names,
                   function(y)reformulate(termlabels = termlabels,
                                          response = y))
@@ -82,55 +90,43 @@ hiermt <- function(formula,
                          model.response)),
               ncol = Q)
   colnames(Y) <- response_names_c
-
   cor_mat <- as.matrix(cor(Y, method = "spearman"))
-
   models <- map(formulas,
                 function(y)lm(y,data=data))
   names(models) <- response_names_c
-
   anovas <- map(models,Anova)
   names(anovas) <- response_names_c
   anovas <- anovas%>%transpose()%>%map(bind_cols)
-
   test_stats <- t(anovas$`F value`)[,1L]
   pvalues <- t(anovas$`Pr(>F)`)[,1L]
 
-  emmeans_formula <- as.formula(paste("pairwise~",termlabels))
-
-  pairwise_comparisons <- function(model){
-    emmeanss <- suppressMessages(cld(emmeans(model,
-                            specs = emmeans_formula),
-                    Letters = letters)$.group)
-    return(as.vector(emmeanss))
+  # Multiple comparisons
+  emmeans_formula <- as.formula(paste("pairwise~",deparse(rhs)))
+  multiple_comparisons <- function(model){
+    emmeanss <- emmeans(model,specs = emmeans_formula)
+    multcomp_pvalues <- data.frame(emmeanss$contrasts)[,c(1,6)]
+    return(multcomp_pvalues)
   }
 
   hc <- hclust(as.dist(sqrt(2L*(1L-abs(cor_mat)))),method="ward.D2")
-
   dend <- as.dendrogram(hc)
-
   nn <- as.integer(nnodes(dend))
 
   node_counter <- node <- is_node_leaf <- descendents <- ancestors <-
     parent <- sibling <- is_sibling_leaf <- adjustment <-
     node_pvalue <- adj_pvalue <- h_adj_pvalue <- detected <- labels <-
     V1 <- V2 <- label_color <- ggendplot <- line_color <- show_label <-
-    x <- xend <- y <- yend <- show_cld <- cld_values <- NULL
+    x <- xend <- y <- yend <- show_cld <- cld_values <- pairwise_comp <-
+    pairwise_pvalues <-  pairwise_comp_1 <- pairwise_comp_2 <- p.value <- NULL
 
   calculate_global_pvalue <- function(p, t, corr, test){
-    global_pvalue <- 1L
-    if(test == "bonferroni"){
-      global_pvalue = min(p*length(p))
-    }
-    else if (length(p) == 1L){
-      global_pvalue = p
-    }
-    else if (test ==  "ghc"){
-      global_pvalue = GHC(t, corr)$GHC_pvalue
-    }
-    else {
-      global_pvalue = GBJ(t, corr)$GBJ_pvalue
-    }
+    global_pvalue <- fcase(
+      length(p) == 1, p[1L],
+      test == "bonferroni", min(p*length(p)),
+      test == "ghc", GHC(t, corr)$GHC_pvalue,
+      test == "gbj", GBJ(t, corr)$GBJ_pvalue,
+      default = 1
+      )
     return(global_pvalue)
   }
 
@@ -158,25 +154,33 @@ hiermt <- function(formula,
                                    pvalues[x],
                                    test_stats[x],
                                    fsubset(cor_mat,x,x),
-                                   global_test),1)))%>%
+                                   global_test),1L)))%>%
     mutate(adj_pvalue = map2_dbl(node_pvalue,
                                  adjustment,
-                                 function(x,y) min(x*y,1)))%>%
+                                 function(x,y) min(x*y,1L)))%>%
     mutate(h_adj_pvalue = map_dbl(ancestors,
                                   function(x) max(adj_pvalue[x])),
-           detected = ifelse(h_adj_pvalue<=alpha,
+           detected = fifelse(h_adj_pvalue<=alpha,
                              TRUE, FALSE),
            labels = map_dbl(h_adj_pvalue,
-                            function(x) ifelse(x <=alpha, round(x,3), NA)))
+                            function(x) fifelse(x <= alpha,
+                                                round(x,3L),
+                                                NA_integer_)))
 
 
 
-  attr_leaf <- attr[is_node_leaf==1,]%>%mutate(
-    node = unlist(node),
-    cld_values = ifelse(detected==TRUE,
-                        map(node,
-                            function(x) pairwise_comparisons(models[[x]])),
-                        NA))
+  attr_leaf <- attr[is_node_leaf==1,]%>%
+    mutate(node = unlist(node),
+           multcomp_pvalues = fifelse(detected==TRUE,
+             map2(node,
+                  is_sibling_leaf,
+                  function(x,y)multiple_comparisons(models[[x]])%>%
+                    mutate(p.value = map_dbl(p.value,
+                                             function(z)round(
+                                               min((z*Q/(y+1)),1),4)))
+                  ),
+             list(NA)))
+
   ggdend_plot <- NULL
 
   if (show_plot){
@@ -189,7 +193,7 @@ hiermt <- function(formula,
     node_labels_df <- data.table(
     label(dend_data),
     label_color = attr_leaf$detected,
-    show_cld = attr_leaf$cld_values)
+    show_cld = attr_leaf$multcomp_pvalues)
 
     leaf_labels_df <-data.table(
       get_nodes_xy(dend),
@@ -211,11 +215,11 @@ hiermt <- function(formula,
                 hjust ="outward",
                 nudge_x = 0.15,
                 nudge_y = -0.01,
-                size = ifelse(Q<=10,
+                size = fifelse(Q<=10,
                               3,
-                              ifelse(Q<=50,
+                              fifelse(Q<=50,
                                      2.5,
-                                     ifelse(Q<=100,
+                                     fifelse(Q<=100,
                                             2,
                                             1))))+
       geom_text(data = node_labels_df,
@@ -226,20 +230,20 @@ hiermt <- function(formula,
                 hjust ="outward",
                 nudge_x = 0.15,
                 nudge_y = -0.10,
-                size = ifelse(Q<=10,
+                size = fifelse(Q<=10,
                               3,
-                              ifelse(Q<=50,
+                              fifelse(Q<=50,
                                      2.5,
-                                     ifelse(Q<=100,
+                                     fifelse(Q<=100,
                                             2,
                                             1))))+
       geom_label(data = leaf_labels_df,
                  aes(x=V1,
                      y=V2,
                      label= show_label),
-                 size = ifelse(Q<=10,
+                 size = fifelse(Q<=10,
                                2,
-                               ifelse(Q<=50,
+                               fifelse(Q<=50,
                                       1.5,
                                       1)),
                  na.rm=TRUE)+
@@ -250,12 +254,12 @@ hiermt <- function(formula,
       coord_flip()+
       theme(legend.position="none")
   }
-  leaves <- attr_leaf[,list(node,h_adj_pvalue,detected,cld_values)]
+  #leaves <- attr_leaf[,list(node,h_adj_pvalue,detected,pairwise_pvalues)]
 
   #data.table(index = attr_leaf$node,h_adj_pvalue = attr_leaf$h_adj_pvalue)
 
   return(list(dend = ggdend_plot,
-              leaves = leaves,
+              leaves = attr_leaf,
               all = attr))
 }
 

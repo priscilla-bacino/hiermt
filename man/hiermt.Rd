@@ -17,16 +17,16 @@ hiermt(
 
 \item{data}{A data frame containing variables listed in the formula.}
 
-\item{global_test}{Global test to use when testing the intersection of hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
+\item{global_test}{Global test to use when testing the hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
 
-\item{show_plot}{logical. Default set to \code{FALSE}, if \code{TRUE} a dendrogram showing the results is returned.}
+\item{show_plot}{Logical. Default set to \code{FALSE}, if \code{TRUE} a dendrogram showing the results is returned.}
 }
 \value{
 \code{dend} A dendrogram with the hierarchically-adjusted p-values.
 
-\code{leaves} A dataframe containing the adjusted p-values for the individual hypotheses.
+\code{leaves} A dataframe containing the adjusted p-values for the terminal node hypotheses.
 
 \code{all} A dataframe containing all attributes of each node in the hierarchy.
 }
