@@ -23,7 +23,7 @@
 #'
 #' @examples
 #' set.seed(1)
-#' n <- 50
+#' c
 #' df <- data.frame(y1 = rnorm(n), y2 = rnorm(n), x = sample(rep(0:1, c(n / 2, n / 2))))
 #' hiermt(formula = cbind(y1, y2) ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
 #' hiermt(formula = . ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
@@ -255,7 +255,8 @@ hiermt <- function(formula,
   emmeans_formula <- as.formula(
     paste(
       "pairwise~",
-      deparse(rhs)
+      deparse(rhs),
+      collapse = " "
     )
   )
 
