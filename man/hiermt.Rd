@@ -2,14 +2,14 @@
 % Please edit documentation in R/hiermt.R
 \name{hiermt}
 \alias{hiermt}
-\title{Hierarchical multiple testing}
+\title{Fit linear models and hierarchically adjust p-values}
 \usage{
 hiermt(
   formula,
   data = NULL,
   global_test = "ghc",
   alpha = 1L,
-  show_plot = FALSE
+  mult_comp = FALSE
 )
 }
 \arguments{
@@ -17,11 +17,11 @@ hiermt(
 
 \item{data}{A data frame containing variables listed in the formula.}
 
-\item{global_test}{Global test to use when testing the hypotheses. This should be one of "bonferonni", "ghc", "gbj".}
+\item{global_test}{Global test to use when testing the hypotheses. This should be one of "bonferroni", "ghc", "gbj".}
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
 
-\item{show_plot}{Logical. Default set to \code{FALSE}, if \code{TRUE} a dendrogram showing the results is returned.}
+\item{mult_comp}{Logical: TRUE or FALSE. Whether to compute multiple comparisons.}
 }
 \value{
 \code{dend} A dendrogram with the hierarchically-adjusted p-values.
@@ -31,12 +31,12 @@ hiermt(
 \code{all} A dataframe containing all attributes of each node in the hierarchy.
 }
 \description{
-Calculate and visualize correlation-based hierarchically adjusted p-values.
+hiermt is used to fit multiple univariate linear models and perform hierarchical-based multiple testing adjustment to the resulting p-values.
 }
 \examples{
 set.seed(1)
 n <- 50
-df <- data.frame(y1=rnorm(n), y2=rnorm(n),x=sample(rep(0:1,c(n/2,n/2))))
-hiermt(formula=cbind(y1,y2)~x, data=df, global_test="bonferroni", alpha = 0.05)
-hiermt(formula=.~x, data=df, global_test="bonferroni", alpha = 0.05)
+df <- data.frame(y1 = rnorm(n), y2 = rnorm(n), x = sample(rep(0:1, c(n / 2, n / 2))))
+hiermt(formula = cbind(y1, y2) ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
+hiermt(formula = . ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
 }
