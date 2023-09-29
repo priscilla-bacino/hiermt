@@ -81,7 +81,7 @@ hiermt <- function(formula,
   model_attr[, modelframes := lapply(
     formulas,
     function(x) {
-      model.frame(formula = as.formula(x),
+      model.frame(formula = x,
                   data = data)
     }
   )]
@@ -253,7 +253,7 @@ hiermt <- function(formula,
             labels := round(h_adj_pvalue, 3)]
 
   emmeans_formula <- as.formula(
-    paste(
+    paste0(
       "pairwise~",
       deparse(rhs),
       collapse = " "
