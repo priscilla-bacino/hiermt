@@ -48,13 +48,15 @@ hiermt <- function(formula,
 
   termlabels <- attr(Terms, "term.labels")
 
+  factor_names <- as.character(attr(Terms, "variables"))[-c(1L, 2L)]
+
   if (lhs == ".") {
     if (missing(data)) {
       stop("\'.\' in formula but no data argument supplied.")
     }
-    predictors <- as.character(attr(Terms, "variables"))[-c(1L, 2L)]
+
     response_names <- lapply(as.list(setdiff(colnames(data),
-                                             predictors)),
+                                             factor_names)),
                              as.name)
   } else {
     if (is.symbol(lhs)) {
@@ -253,10 +255,8 @@ hiermt <- function(formula,
             labels := round(h_adj_pvalue, 3)]
 
   emmeans_formula <- as.formula(
-    paste0(
-      "pairwise~",
-      deparse(rhs),
-      collapse = " "
+    paste(
+      "pairwise", "~", deparse(rhs)
     )
   )
 
@@ -270,7 +270,7 @@ hiermt <- function(formula,
 
   if (mult_comp) {
     if (any(model_attr[, model_factors] < 3)) {
-      stop("Need more than two levels in group to perform multiple comparisons.")
+      stop("Need more than two levels for a factor to perform multiple comparisons.")
     }
 
     leaf_attr[detected == TRUE,

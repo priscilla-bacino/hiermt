@@ -4,6 +4,7 @@ utils::globalVariables(
     "modelframes",
     "models",
     "responses",
+    "factor_names",
     "response_names",
     "model_factors",
     "anovas",
