@@ -249,7 +249,7 @@ hiermt <- function(formula,
     }
   )]
 
-  hier_attr[, detected := h_adj_pvalue <= alpha]
+  hier_attr[, detected := h_adj_pvalue < alpha]
 
   hier_attr[detected == TRUE,
             labels := round(h_adj_pvalue, 3)]
