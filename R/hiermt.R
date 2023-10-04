@@ -6,6 +6,7 @@
 #' @param data  A data frame containing variables listed in the formula.
 #' @param global_test Global test to use when testing the hypotheses. This should be one of "bonferroni", "ghc", "gbj".
 #' @param alpha Probability of Type I error. Default is set to 1.
+#' @param linkage Agglomeration method used for hierachical clustering in hclust. Defaults to Ward's method.
 #' @param mult_comp Logical: TRUE or FALSE. Whether to compute multiple comparisons.
 #'
 #' @returns `dend` A dendrogram with the hierarchically-adjusted p-values.
@@ -23,7 +24,7 @@
 #'
 #' @examples
 #' set.seed(1)
-#' c
+#' n <- 50
 #' df <- data.frame(y1 = rnorm(n), y2 = rnorm(n), x = sample(rep(0:1, c(n / 2, n / 2))))
 #' hiermt(formula = cbind(y1, y2) ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
 #' hiermt(formula = . ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
@@ -31,6 +32,7 @@ hiermt <- function(formula,
                    data = NULL,
                    global_test = "ghc",
                    alpha = 1L,
+                   linkage = "ward.D2",
                    mult_comp = FALSE) {
 
   # Fit linear models
@@ -141,12 +143,26 @@ hiermt <- function(formula,
     )
   )
 
+  linkage <- match.arg(
+    linkage,
+    c("ward.D2",
+      "ward.D",
+      "single",
+      "complete",
+      "average",
+      "mcquitty",
+      "median",
+      "centroid"
+    )
+  )
+
+
   hc <- hclust(
     as.dist(
       sqrt(
         2L * (1L - abs(cor_mat))
       )
-    )
+    ), method = linkage
   )
 
   dend <- as.dendrogram(hc)

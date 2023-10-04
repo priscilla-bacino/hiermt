@@ -9,6 +9,7 @@ hiermt(
   data = NULL,
   global_test = "ghc",
   alpha = 1L,
+  linkage = "ward.D2",
   mult_comp = FALSE
 )
 }
@@ -20,6 +21,8 @@ hiermt(
 \item{global_test}{Global test to use when testing the hypotheses. This should be one of "bonferroni", "ghc", "gbj".}
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
+
+\item{linkage}{Agglomeration method used for hierachical clustering in hclust. Defaults to Ward's method.}
 
 \item{mult_comp}{Logical: TRUE or FALSE. Whether to compute multiple comparisons.}
 }
