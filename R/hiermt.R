@@ -31,7 +31,7 @@
 hiermt <- function(formula,
                    data = NULL,
                    global_test = "ghc",
-                   alpha = 1L,
+                   alpha = 0.05,
                    linkage = "ward.D2",
                    mult_comp = FALSE) {
 
