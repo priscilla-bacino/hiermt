@@ -4,6 +4,7 @@
 #'
 #' @param formula A model formula object. Left hand side contains response variable(s) and right hand side contains explanatory variable(s).
 #' @param data  A data frame containing variables listed in the formula.
+#' @param method Adjustment method for hypothesis at each node. This should be  one of "new", or "meinshausen"
 #' @param global_test Global test to use when testing the hypotheses. This should be one of "bonferroni", "ghc", "gbj".
 #' @param alpha Probability of Type I error. Default is set to 1.
 #' @param linkage Agglomeration method used for hierachical clustering in hclust. Defaults to Ward's method.
@@ -30,6 +31,7 @@
 #' hiermt(formula = . ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
 hiermt <- function(formula,
                    data = NULL,
+                   method = "new",
                    global_test = "ghc",
                    alpha = 0.05,
                    linkage = "ward.D2",
@@ -156,7 +158,6 @@ hiermt <- function(formula,
     )
   )
 
-
   hc <- hclust(
     as.dist(
       sqrt(
@@ -189,6 +190,29 @@ hiermt <- function(formula,
     )
     global_pvalue <- min(global_pvalue, 1)
     return(global_pvalue)
+  }
+
+  method <- match.arg(
+    method,
+    c(
+      "new",
+      "meinshausen"
+    )
+  )
+
+  node_adjustment_method <- function(method,
+                                     Q,
+                                     sibling,
+                                     is_sibling_leaf,
+                                     node) {
+
+    adjustment <- fcase(
+      method == "meinshausen", Q / (length(node) + sum(is_sibling_leaf)),
+      method == "new", Q / (length(node) + sum(sibling > 0))
+    )
+
+    return(adjustment)
+
   }
 
   hier_attr <- data.table(
@@ -234,11 +258,12 @@ hiermt <- function(formula,
   )]
 
   hier_attr[, adjustment := mapply(
-    function(x, z) {
-      max((Q / (length(x) + z)), 1L)
+    function(x, y, z) {
+      node_adjustment_method(method, Q, x, y, z)
     },
-    hier_attr[, node],
-    hier_attr[, is_sibling_leaf]
+    hier_attr[, sibling],
+    hier_attr[, is_sibling_leaf],
+    hier_attr[, node]
   )]
 
   hier_attr[, node_pvalue := sapply(
