@@ -3,7 +3,7 @@
 #' Named metabolite concentrations of 77 urine samples from two groups of cancer patients
 #' measured by 1H NMR. Group 1 - Cachexic; Group 2 - Control.
 #'
-#' @format A data frame with 77 rows and 65 columns.
+#' @format A data frame with 77 rows and 64 columns.
 #'
 #' @source \emph{Metaboanalyst 5.0}
 #' https://www.xialab.ca/api/download/metaboanalyst/human_cachexia.csv

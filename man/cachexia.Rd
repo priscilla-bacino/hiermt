@@ -5,7 +5,7 @@
 \alias{cachexia}
 \title{Human Cachexia}
 \format{
-A data frame with 77 rows and 65 columns.
+A data frame with 77 rows and 64 columns.
 }
 \source{
 \emph{Metaboanalyst 5.0}
