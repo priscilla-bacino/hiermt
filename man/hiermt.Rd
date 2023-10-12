@@ -7,7 +7,7 @@
 hiermt(
   formula,
   data = NULL,
-  method = "new",
+  method = "hb",
   global_test = "ghc",
   alpha = 0.05,
   linkage = "ward.D2",
@@ -15,26 +15,26 @@ hiermt(
 )
 }
 \arguments{
-\item{formula}{A model formula object. Left hand side contains response variable(s) and right hand side contains explanatory variable(s).}
+\item{formula}{An object of class \link{formula} or one that can be coerced to that class. Left hand side of the formula object contains response variable(s)and right hand side contains explanatory variable(s).}
 
-\item{data}{A data frame containing variables listed in the formula.}
+\item{data}{An optional data frame containing variables listed in the formula. If data argument is not supplied, the variables should be explicitly referenced in the formula.}
 
-\item{method}{Adjustment method for hypothesis at each node. This should be  one of "new", or "meinshausen"}
+\item{method}{Multiple testing adjustment method for hypothesis at each node. This should be  one of "hb", or "meinshausen".}
 
-\item{global_test}{Global test to use when testing the hypotheses. This should be one of "bonferroni", "ghc", "gbj".}
+\item{global_test}{Global test to use when combining p-values. This should be one of "bonferroni", "ghc", "gbj".}
 
 \item{alpha}{Probability of Type I error. Default is set to 1.}
 
-\item{linkage}{Agglomeration method used for hierachical clustering in hclust. Defaults to Ward's method.}
+\item{linkage}{Agglomeration method used for hierarchical clustering in \link{hclust}. Defaults to Ward's method.}
 
 \item{mult_comp}{Logical: TRUE or FALSE. Whether to compute multiple comparisons.}
 }
 \value{
-\code{dend} A dendrogram with the hierarchically-adjusted p-values.
+An object of class hiermt which describes the hierachcical testing process. The object is a list with components:
 
-\code{leaves} A dataframe containing the adjusted p-values for the terminal node hypotheses.
+\code{hier_attr} Attributes of the hierarchical structure.
 
-\code{all} A dataframe containing all attributes of each node in the hierarchy.
+\code{grid_attr} A subset of hier_attr showing attributes of the terminal nodes only.
 }
 \description{
 hiermt is used to fit multiple univariate linear models and perform hierarchical-based multiple testing adjustment to the resulting p-values.
@@ -45,4 +45,5 @@ n <- 50
 df <- data.frame(y1 = rnorm(n), y2 = rnorm(n), x = sample(rep(0:1, c(n / 2, n / 2))))
 hiermt(formula = cbind(y1, y2) ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
 hiermt(formula = . ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
+
 }

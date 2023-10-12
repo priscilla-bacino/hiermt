@@ -25,24 +25,26 @@ plot.hiermt <- function(x, ...) {
 
   hier_attr <- x$hier_attr
 
-  leaf_attr <- x$leaf_attr
-
   dend <- x$dend
 
   mult_comp = x$mult_comp
 
   alpha = x$alpha
 
-  Q <- nrow(leaf_attr)
+  nrow_hier_attr <- nrow(hier_attr)
 
-  label_size <- function(Q) {
+  label_size <- function(n_row) {
     fcase(
-      Q <= 10, 3,
-      Q <= 50, 2.5,
-      Q <= 100, 2,
+      n_row <= 20, 3,
+      n_row <= 100, 2.5,
+      n_row <= 200, 2,
       default = 1
     )
   }
+
+  hier_attr[, detected := h_adj_pvalue < alpha]
+
+  hier_attr[detected == TRUE, labels := round(h_adj_pvalue, 3)]
 
   dend_data <- dendro_data(dend)
 
@@ -59,104 +61,108 @@ plot.hiermt <- function(x, ...) {
   leaf_labels_dt <- data.table(
     label(dend_data)
   )
-  setkey(leaf_labels_dt,label)
+
+  setkey(leaf_labels_dt, label)
+
+  leaf_attr <- data.table(
+    label = unlist(hier_attr[is_node_leaf == 1, node]),
+    detected = hier_attr[is_node_leaf == 1, h_adj_pvalue] < alpha
+  )
+
+  setkey(leaf_attr, label)
 
   leaf_attr <- leaf_attr[leaf_labels_dt]
 
-  base_dend <- ggplot() +
+  base_plot <- ggplot() +
     geom_segment(
       data = branch_dt,
       aes(x = x, y = y, xend = xend, yend = yend, color = line_color),
       linewidth = 0.3
     ) +
-    scale_color_manual(
-      values = c("#bfbfbf", "#000000")
-    ) +
-    theme_void() +
-    #coord_flip() +
-    theme(legend.position = "none")
-
-  top_tier_dend <- base_dend +
     geom_label(
       data = node_labels_dt,
       aes(x = V1, y = V2, label = show_label),
-      size = label_size(Q),
+      size = label_size(nrow_hier_attr),
       na.rm = TRUE
     ) +
-    geom_text(
-      data = leaf_attr,
-      aes(x = x, y = y, label = response_names, color = detected),
-      angle = 90,
-      hjust = "outward",
-      size = label_size(Q),
-      na.rm = TRUE,
-      nudge_y = -0.05,
-    )
-
+    scale_color_manual(
+      values = c("#bfbfbf", "#000000")
+    ) +
+    coord_cartesian() +
+    theme_void() +
+    theme(legend.position = "none")
 
   if (mult_comp) {
 
-    contrasts_no <- max(
-      sapply(leaf_attr[, mult_comp_contrasts],
-             length)
+    grid_attr <- x$grid_attr
+
+    contrast_labels <- grid_attr[, mult_comp_contrasts][[1]]
+
+    contrast_n <- length(contrast_labels)
+
+    y_seq <- -seq(from = 0.05, by = 0.03, length.out = contrast_n)
+
+    contrast_pvalues <- data.table(
+      response_names = rep(grid_attr[, response_names], each = contrast_n),
+      detected = unlist(grid_attr[, h_adj_mult_comp_pvalues]) < alpha
     )
 
-    leaf_attr <- leaf_attr[is.null(mult_comp_pvalues),
-                           mult_comp_pvalues := NA]
+    setkey(contrast_pvalues, response_names)
 
-    leaf_attr[detected == TRUE,
-              mult_comp_detected := lapply(
-                mult_comp_pvalues,
-                function(x) {
-                  sapply(x, function(z) {fifelse(z <= alpha, 0, NA_integer_)})
-                }
-              )]
+    contrast_pvalues <- contrast_pvalues[leaf_labels_dt]
 
-    mult_comp_points <- data.table(
-      plot_no = 1:contrasts_no,
-      point_color = rainbow(contrasts_no),
-      contrasts = leaf_attr[
-        sapply(
-          leaf_attr[, mult_comp_contrasts],
-          function(x) !is.null(x)
-        ), mult_comp_contrasts
-      ][[1]]
-    )
+    contrast_pvalues[, y := y + y_seq]
 
-    mult_comp_points[, plots := mapply(
-      function(z,v) {
-        geom_point(
-          data = leaf_attr,
-          aes(
-            x = x,
-            y = sapply(mult_comp_detected, function(x) {
-              if (is.null(x)) NA else x[z]
-            }) - (z/50)
-          ),
-          na.rm = TRUE,
-          color = v
-        )
-      },
-      plot_no,
-      point_color
-    )]
-
-    followup_tier_dend <- base_dend + ggtitle('Follow-up tier')
-
-    for (geom in mult_comp_points[, plots]) {
-      followup_tier_dend <- followup_tier_dend + geom
-    }
-
-    top_tier_dend <- top_tier_dend + ggtitle('Top tier')
-
-    hier_plot <- top_tier_dend / followup_tier_dend
+    hier_plot <- base_plot +
+      geom_tile(
+        data = contrast_pvalues,
+        aes(x = x,
+            y = y,
+            fill = detected
+        ),
+        color = "white",
+        lwd = 1,
+        linetype = 1
+      ) +
+      scale_fill_manual(
+        values = c("#efefef", "#000000")
+      ) + geom_text(
+        data = leaf_attr,
+        aes(x = x,
+            y = min(contrast_pvalues$y),
+            label = label,
+            color = detected
+        ),
+        angle = 90,
+        hjust = "outward",
+        size = label_size(nrow_hier_attr),
+        na.rm = TRUE,
+        nudge_y = -0.05
+      ) +
+      geom_text(
+        aes(x = 0,
+            y = y_seq,
+            label = contrast_labels
+        ),
+        hjust = "outward",
+        size = label_size(nrow_hier_attr),
+        na.rm = TRUE
+      )
 
   } else {
 
-    hier_plot <- top_tier_dend
+    hier_plot <- base_plot +
+      geom_text(
+        data = leaf_attr,
+        aes(x = x, y = y, label = label, color = detected),
+        angle = 90,
+        hjust = "outward",
+        size = label_size(nrow_hier_attr),
+        na.rm = TRUE,
+        nudge_y = -0.05
+      )
 
   }
 
-  return(hier_plot)
-
+return(hier_plot)
 }

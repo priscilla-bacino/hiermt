@@ -2,23 +2,23 @@
 #'
 #' hiermt is used to fit multiple univariate linear models and perform hierarchical-based multiple testing adjustment to the resulting p-values.
 #'
-#' @param formula A model formula object. Left hand side contains response variable(s) and right hand side contains explanatory variable(s).
-#' @param data  A data frame containing variables listed in the formula.
-#' @param method Adjustment method for hypothesis at each node. This should be  one of "new", or "meinshausen"
-#' @param global_test Global test to use when testing the hypotheses. This should be one of "bonferroni", "ghc", "gbj".
+#' @param formula An object of class \link{formula} or one that can be coerced to that class. Left hand side of the formula object contains response variable(s)and right hand side contains explanatory variable(s).
+#' @param data  An optional data frame containing variables listed in the formula. If data argument is not supplied, the variables should be explicitly referenced in the formula.
+#' @param method Multiple testing adjustment method for hypothesis at each node. This should be  one of "hb", or "meinshausen".
+#' @param global_test Global test to use when combining p-values. This should be one of "bonferroni", "ghc", "gbj".
 #' @param alpha Probability of Type I error. Default is set to 1.
-#' @param linkage Agglomeration method used for hierachical clustering in hclust. Defaults to Ward's method.
+#' @param linkage Agglomeration method used for hierarchical clustering in \link{hclust}. Defaults to Ward's method.
 #' @param mult_comp Logical: TRUE or FALSE. Whether to compute multiple comparisons.
 #'
-#' @returns `dend` A dendrogram with the hierarchically-adjusted p-values.
-#' @returns `leaves` A dataframe containing the adjusted p-values for the terminal node hypotheses.
-#' @returns `all` A dataframe containing all attributes of each node in the hierarchy.
+#' @returns An object of class hiermt which describes the hierachcical testing process. The object is a list with components:
+#' @returns `hier_attr` Attributes of the hierarchical structure.
+#' @returns `grid_attr` A subset of hier_attr showing attributes of the terminal nodes only.
 #' @export
 #'
 #' @import stats
 #' @importFrom GBJ GHC GBJ
 #' @importFrom data.table data.table := fcase setkey
-#' @importFrom dendextend nnodes partition_leaves which_node which_leaf
+#' @importFrom dendextend nnodes partition_leaves which_leaf
 #' @importFrom collapse fsubset
 #' @importFrom car Anova
 #' @importFrom emmeans emmeans
@@ -29,15 +29,43 @@
 #' df <- data.frame(y1 = rnorm(n), y2 = rnorm(n), x = sample(rep(0:1, c(n / 2, n / 2))))
 #' hiermt(formula = cbind(y1, y2) ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
 #' hiermt(formula = . ~ x, data = df, global_test = "bonferroni", alpha = 0.05)
+#'
 hiermt <- function(formula,
                    data = NULL,
-                   method = "new",
+                   method = "hb",
                    global_test = "ghc",
                    alpha = 0.05,
                    linkage = "ward.D2",
                    mult_comp = FALSE) {
 
-  # Fit linear models
+  method <- match.arg(
+    method,
+    c(
+      "hb",
+      "meinshausen"
+    )
+  )
+
+  global_test <- match.arg(
+    global_test,
+    c("bonferroni",
+      "ghc",
+      "gbj"
+    )
+  )
+
+  linkage <- match.arg(
+    linkage,
+    c("ward.D2",
+      "ward.D",
+      "single",
+      "complete",
+      "average",
+      "mcquitty",
+      "median",
+      "centroid"
+    )
+  )
 
   lhs <- formula[[2L]]
 
@@ -56,7 +84,9 @@ hiermt <- function(formula,
 
   if (lhs == ".") {
     if (missing(data)) {
-      stop("\'.\' in formula but no data argument supplied.")
+      stop(
+        "\'.\' in formula but no data argument supplied."
+      )
     }
 
     response_names <- lapply(as.list(setdiff(colnames(data),
@@ -69,6 +99,7 @@ hiermt <- function(formula,
     response_names <- lhs
     response_names[[1L]] <- NULL
   }
+
 
   model_attr <- data.table(
     response_names = as.character(response_names)
@@ -127,8 +158,6 @@ hiermt <- function(formula,
     1
   )]
 
-  # Hierarchical testing
-
   Q <- nrow(model_attr)
 
   Y <- matrix(
@@ -137,24 +166,12 @@ hiermt <- function(formula,
     ),
     ncol = Q
   )
+
   colnames(Y) <- model_attr[, response_names]
 
   cor_mat <- as.matrix(
     cor(
       Y, method = "spearman"
-    )
-  )
-
-  linkage <- match.arg(
-    linkage,
-    c("ward.D2",
-      "ward.D",
-      "single",
-      "complete",
-      "average",
-      "mcquitty",
-      "median",
-      "centroid"
     )
   )
 
@@ -169,51 +186,6 @@ hiermt <- function(formula,
   dend <- as.dendrogram(hc)
 
   nn <- as.integer(nnodes(dend))
-
-
-  global_test <- match.arg(
-    global_test,
-    c("bonferroni", "ghc", "gbj")
-  )
-
-  get_global_pvalue <- function(ind_pvalue,
-                                ind_test_stat,
-                                corr,
-                                test) {
-    ind_pvalue_len <- length(ind_pvalue)
-    global_pvalue <- fcase(
-      ind_pvalue_len == 1L, ind_pvalue[1],
-      test == "bonferroni", min(ind_pvalue * ind_pvalue_len),
-      test == "ghc", GHC(ind_test_stat, corr)$GHC_pvalue,
-      test == "gbj", GBJ(ind_test_stat, corr)$GBJ_pvalue,
-      default = 1
-    )
-    global_pvalue <- min(global_pvalue, 1)
-    return(global_pvalue)
-  }
-
-  method <- match.arg(
-    method,
-    c(
-      "new",
-      "meinshausen"
-    )
-  )
-
-  node_adjustment_method <- function(method,
-                                     Q,
-                                     sibling,
-                                     is_sibling_leaf,
-                                     node) {
-
-    adjustment <- fcase(
-      method == "meinshausen", Q / (length(node) + sum(is_sibling_leaf)),
-      method == "new", Q / (length(node) + sum(sibling > 0))
-    )
-
-    return(adjustment)
-
-  }
 
   hier_attr <- data.table(
     node_counter = 1L:nn,
@@ -231,7 +203,7 @@ hiermt <- function(formula,
   hier_attr[, ancestors := lapply(
     node,
     function(x){
-      which_node(dend, x, max_id = FALSE)
+      which(sapply(node, function(z) all(x %in% z)))
     }
   )]
 
@@ -246,36 +218,86 @@ hiermt <- function(formula,
     function(x,z) {
       setdiff(which(hier_attr[, parent] == x), z)
     },
-    hier_attr[, parent],
-    hier_attr[, node_counter]
+    parent,
+    node_counter
   )]
 
   hier_attr[, is_sibling_leaf := sapply(
     sibling,
     function(x) {
-      hier_attr[x, is_node_leaf]
+      is_node_leaf[x]
     }
   )]
+
+  node_adjustment_method <- function(method,
+                                     Q,
+                                     sibling,
+                                     is_sibling_leaf,
+                                     node) {
+
+    adjustment <- fcase(
+      method == "meinshausen", Q / (length(node) + sum(is_sibling_leaf)),
+      method == "hb", Q / (length(node) + sum(sibling > 0))
+    )
+
+    return(adjustment)
+
+  }
 
   hier_attr[, adjustment := mapply(
     function(x, y, z) {
       node_adjustment_method(method, Q, x, y, z)
     },
-    hier_attr[, sibling],
-    hier_attr[, is_sibling_leaf],
-    hier_attr[, node]
+    sibling,
+    is_sibling_leaf,
+    node
   )]
 
-  hier_attr[, node_pvalue := sapply(
+  hier_attr[, select_pvalues := lapply(
     node,
-    function(x) {
-      get_global_pvalue(
-        model_attr[response_names %in% x, pvalues],
-        model_attr[response_names %in% x, test_stats],
-        fsubset(cor_mat, x, x),
-        global_test
-      )
+    function(x){
+      model_attr[.(x), pvalues]
     }
+  )]
+
+  hier_attr[, select_teststats := lapply(
+    node,
+    function(x){
+      model_attr[.(x), test_stats]
+    }
+  )]
+
+  hier_attr[, select_cor := lapply(
+    node,
+    function(x){
+      fsubset(cor_mat, x, x)
+    }
+  )]
+
+  get_global_pvalue <- function(pvalues, test_stats, cor, test){
+
+    if (length(pvalues) == 1L) {
+
+      return(pvalues[1])
+
+    }
+
+    switch(
+      test,
+      "bonferroni" = min(pvalues) * length(pvalues),
+      "ghc" = GHC(test_stats, cor)$GHC_pvalue,
+      "gbj" = GBJ(test_stats, cor)$GBJ_pvalue,
+      1
+    )
+
+  }
+
+  hier_attr[, node_pvalue := mapply(
+    get_global_pvalue,
+    select_pvalues,
+    select_teststats,
+    select_cor,
+    MoreArgs = list(test = global_test)
   )]
 
   hier_attr[, adj_pvalue := pmin(
@@ -286,63 +308,89 @@ hiermt <- function(formula,
   hier_attr[, h_adj_pvalue := sapply(
     ancestors,
     function(x){
-      max(hier_attr[x, adj_pvalue])
+      max(adj_pvalue[x])
     }
   )]
 
-  hier_attr[, detected := h_adj_pvalue < alpha]
-
-  hier_attr[detected == TRUE,
-            labels := round(h_adj_pvalue, 3)]
-
-  emmeans_formula <- as.formula(
-    paste(
-      "pairwise", "~", deparse(rhs)
-    )
-  )
-
-  leaf_attr <- hier_attr[is_node_leaf == 1L,]
-
-  leaf_attr[, node := unlist(node)]
-
-  setkey(leaf_attr, node)
-
-  leaf_attr <- model_attr[leaf_attr]
+  grid_attr <- "No grid attributes, multiple comparisons were not performed."
 
   if (mult_comp) {
     if (any(model_attr[, model_factors] < 3)) {
       stop("Need more than two levels for a factor to perform multiple comparisons.")
     }
 
-    leaf_attr[detected == TRUE,
-              emmeanss := lapply(
-                models,
-                function(x){
-                  summary(emmeans(x, specs = emmeans_formula))$contrasts
-                }
-              )]
+    grid_attr <- hier_attr[is_node_leaf == 1L,]
 
-    leaf_attr[detected == TRUE,
-              mult_comp_pvalues := lapply(
-                emmeanss,
-                function(x){
-                  vapply(x$p.value,
-                         function(z) {min(round(z,4),1L)},
-                         1)
-                }
-              )]
+    grid_attr[, node := unlist(node)]
 
-    leaf_attr[detected == TRUE,
-              mult_comp_contrasts := lapply(
-                emmeanss,
-                function(x) x$contrast
-              )]
+    setkey(grid_attr, node)
+
+    grid_attr <- model_attr[grid_attr]
+
+    emmeans_formula <- as.formula(
+      paste(
+        "pairwise", "~", deparse(rhs)
+      )
+    )
+
+    grid_attr[, emmeanss := lapply(
+      models,
+      function(x){
+        summary(emmeans(x, specs = emmeans_formula, adjust = "none"))$contrasts
+      }
+    )]
+
+    grid_attr[, mult_comp_pvalues := lapply(
+      emmeanss,
+      function(x){
+        x$p.value
+      }
+    )]
+
+    grid_attr[, adj_mult_comp_pvalues := mapply(
+      function(x, z) {
+        pmin(Q*x*z*0.5, 1L)
+      },
+      mult_comp_pvalues,
+      model_factors,
+      SIMPLIFY = FALSE
+    )]
+
+    grid_attr[, h_adj_mult_comp_pvalues := mapply(
+      function(x, z) {
+        pmax(x, z)
+      },
+      adj_mult_comp_pvalues,
+      h_adj_pvalue,
+      SIMPLIFY = FALSE
+    )]
+
+    grid_attr[, mult_comp_contrasts := lapply(
+      emmeanss,
+      function(x) x$contrast
+    )]
+
+    grid_attr <- grid_attr[, .(
+    response_names,
+    emmeanss,
+    mult_comp_pvalues,
+    adj_mult_comp_pvalues,
+    h_adj_mult_comp_pvalues,
+    mult_comp_contrasts
+  )]
+
   }
+
+  hier_attr[, c("adjustment",
+                "select_pvalues",
+                "select_teststats",
+                "select_cor"
+              ) := NULL]
 
   structure(
     list(
       hier_attr = hier_attr,
-      leaf_attr = leaf_attr,
+      grid_attr = grid_attr,
       dend = dend,
       mult_comp = mult_comp,
       alpha = alpha,
