@@ -4,7 +4,6 @@
 #'
 #' @param formula An object of class \link{formula} or one that can be coerced to that class. Left hand side of the formula object contains response variable(s)and right hand side contains explanatory variable(s).
 #' @param data  An optional data frame containing variables listed in the formula. If data argument is not supplied, the variables should be explicitly referenced in the formula.
-#' @param method Multiple testing adjustment method for hypothesis at each node. This should be  one of "hb", or "meinshausen".
 #' @param global_test Global test to use when combining p-values. This should be one of "bonferroni", "ghc", "gbj".
 #' @param alpha Probability of Type I error. Default is set to 1.
 #' @param linkage Agglomeration method used for hierarchical clustering in \link{hclust}. Defaults to Ward's method.
@@ -32,19 +31,10 @@
 #'
 hiermt <- function(formula,
                    data = NULL,
-                   method = "hb",
                    global_test = "ghc",
                    alpha = 0.05,
                    linkage = "ward.D2",
                    mult_comp = FALSE) {
-
-  method <- match.arg(
-    method,
-    c(
-      "hb",
-      "meinshausen"
-    )
-  )
 
   global_test <- match.arg(
     global_test,
@@ -229,26 +219,11 @@ hiermt <- function(formula,
     }
   )]
 
-  node_adjustment_method <- function(method,
-                                     Q,
-                                     sibling,
-                                     is_sibling_leaf,
-                                     node) {
-
-    adjustment <- fcase(
-      method == "meinshausen", Q / (length(node) + sum(is_sibling_leaf)),
-      method == "hb", Q / (length(node) + sum(sibling > 0))
-    )
-
-    return(adjustment)
-
-  }
 
   hier_attr[, adjustment := mapply(
-    function(x, y, z) {
-      node_adjustment_method(method, Q, x, y, z)
+    function(x, z) {
+      Q / (length(z) + sum(x))
     },
-    sibling,
     is_sibling_leaf,
     node
   )]
