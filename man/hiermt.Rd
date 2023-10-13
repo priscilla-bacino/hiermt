@@ -7,7 +7,6 @@
 hiermt(
   formula,
   data = NULL,
-  method = "hb",
   global_test = "ghc",
   alpha = 0.05,
   linkage = "ward.D2",
@@ -18,8 +17,6 @@ hiermt(
 \item{formula}{An object of class \link{formula} or one that can be coerced to that class. Left hand side of the formula object contains response variable(s)and right hand side contains explanatory variable(s).}
 
 \item{data}{An optional data frame containing variables listed in the formula. If data argument is not supplied, the variables should be explicitly referenced in the formula.}
-
-\item{method}{Multiple testing adjustment method for hypothesis at each node. This should be  one of "hb", or "meinshausen".}
 
 \item{global_test}{Global test to use when combining p-values. This should be one of "bonferroni", "ghc", "gbj".}
 
