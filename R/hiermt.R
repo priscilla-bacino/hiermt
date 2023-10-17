@@ -219,13 +219,21 @@ hiermt <- function(formula,
     }
   )]
 
+  get_adjustment <- function(Q, pairwise, node, is_sibling_leaf){
+    ifelse(
+      pairwise,
+      Q / length(node),
+      Q / (length(node) + sum(is_sibling_leaf))
+    )
+  }
+
 
   hier_attr[, adjustment := mapply(
     function(x, z) {
-      Q / (length(z) + sum(x))
+      get_adjustment(Q, mult_comp, x, z)
     },
-    is_sibling_leaf,
-    node
+    node,
+    is_sibling_leaf
   )]
 
   hier_attr[, select_pvalues := lapply(
@@ -324,7 +332,7 @@ hiermt <- function(formula,
 
     grid_attr[, adj_mult_comp_pvalues := mapply(
       function(x, z) {
-        pmin(Q*x*z*0.5, 1L)
+        pmin((x * Q * (z - 1) * (z - 2) / 2), 1L)
       },
       mult_comp_pvalues,
       model_factors,
@@ -342,7 +350,7 @@ hiermt <- function(formula,
 
     grid_attr[, mult_comp_contrasts := lapply(
       emmeanss,
-      function(x) x$contrast
+      function(x) summary(x)$contrasts$contrast
     )]
 
     grid_attr <- grid_attr[, .(
