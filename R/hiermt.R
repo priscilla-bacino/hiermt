@@ -364,8 +364,7 @@ hiermt <- function(formula,
 
   }
 
-  hier_attr[, c("adjustment",
-                "select_pvalues",
+  hier_attr[, c("select_pvalues",
                 "select_teststats",
                 "select_cor"
               ) := NULL]
