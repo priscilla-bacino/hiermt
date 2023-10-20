@@ -15,8 +15,8 @@ https://www.xialab.ca/api/download/metaboanalyst/human_cachexia.csv
 cachexia
 }
 \description{
-Named metabolite concentrations of 77 urine samples from two groups of cancer patients
-measured by 1H NMR. Group 1 - Cachexic; Group 2 - Control.
+Log-transformed and standardized named metabolite concentrations of 77 urine samples from
+two groups of cancer patients measured by 1H NMR. Group 1 - Cachexic; Group 2 - Control.
 }
 \references{
 Eisner, R., Stretch, C., Eastman, T. et al. Learning to predict
