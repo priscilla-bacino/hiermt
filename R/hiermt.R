@@ -330,9 +330,11 @@ hiermt <- function(formula,
       }
     )]
 
+    responses_detected <- sum(grid_attr[, h_adj_pvalue < alpha])
+
     grid_attr[, adj_mult_comp_pvalues := mapply(
       function(x, z) {
-        pmin((x * Q * (z - 1) * (z - 2) / 2), 1L)
+        pmin((x * responses_detected * (z - 1) * (z - 2) / 2), 1L)
       },
       mult_comp_pvalues,
       model_factors,

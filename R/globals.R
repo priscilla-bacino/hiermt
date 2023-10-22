@@ -28,6 +28,7 @@ utils::globalVariables(
     "detected",
     "mult_comp",
     "mult_comp_pvalues",
+    "responses_detected",
     "adj_mult_comp_pvalues",
     "h_adj_mult_comp_pvalues",
     "mult_comp_contrasts",
