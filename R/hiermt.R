@@ -12,6 +12,10 @@
 #' @returns An object of class hiermt which describes the hierachcical testing process. The object is a list with components:
 #' @returns `hier_attr` Attributes of the hierarchical structure.
 #' @returns `grid_attr` A subset of hier_attr showing attributes of the terminal nodes only.
+#' @returns `dend` Dendrogram object used in creating the hierarchical structure.
+#' @returns `mult_comp` Logical: TRUE or FALSE. Whether to compute multiple comparisons.
+#' @returns `alpha` Probability of Type I error used. Default is set to 1.
+#' @returns `call` 	the call which produced the result.
 #' @export
 #'
 #' @import stats
