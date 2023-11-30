@@ -32,6 +32,14 @@ An object of class hiermt which describes the hierachcical testing process. The 
 \code{hier_attr} Attributes of the hierarchical structure.
 
 \code{grid_attr} A subset of hier_attr showing attributes of the terminal nodes only.
+
+\code{dend} Dendrogram object used in creating the hierarchical structure.
+
+\code{mult_comp} Logical: TRUE or FALSE. Whether to compute multiple comparisons.
+
+\code{alpha} Probability of Type I error used. Default is set to 1.
+
+\code{call} 	the call which produced the result.
 }
 \description{
 hiermt is used to fit multiple univariate linear models and perform hierarchical-based multiple testing adjustment to the resulting p-values.
